@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>BAPLIE Viewer &amp; Filter</title>
+<style>
+:root{
+  --bg:#0b0b0d; --panel:#141417; --panel2:#1b1b20; --line:#2a2a31; --line2:#35353d;
+  --text:#ececef; --muted:#9a9aa5; --dim:#6c6c76;
+  --or:#ff7a1a; --or2:#ff9a4d; --orbg:rgba(255,122,26,.12); --orbd:rgba(255,122,26,.45);
+  --ok:#3ecf8e; --warn:#ffb020; --err:#ff5d5d; --blue:#5aa9ff;
+  --r:10px; --mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+button,input,select{font:inherit;color:inherit}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2c2c33;border-radius:6px;border:2px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* Top bar */
+.top{display:flex;align-items:center;gap:14px;padding:10px 18px;background:#08080a;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px;font-size:16px}
+.logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--or),#c04d00);display:grid;place-items:center;color:#000;font-weight:900}
+.logo small{color:var(--muted);font-weight:500;margin-left:4px}
+.fileinfo{display:flex;gap:8px;align-items:center;margin-left:8px;min-width:0}
+.pill{padding:3px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.pill.or{color:var(--or2);border-color:var(--orbd);background:var(--orbg)}
+.pill.ok{color:var(--ok);border-color:rgba(62,207,142,.4)}
+.pill.bad{color:var(--err);border-color:rgba(255,93,93,.4);cursor:pointer}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;font-weight:600;font-size:13px;transition:.15s}
+.btn:hover{border-color:var(--or);color:var(--or2)}
+.btn.primary{background:var(--or);border-color:var(--or);color:#111}
+.btn.primary:hover{background:var(--or2);color:#000}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.ghost{background:transparent}
+
+/* Landing */
+.landing{flex:1;display:grid;place-items:center;padding:30px}
+.drop{width:min(720px,100%);border:2px dashed var(--line2);border-radius:18px;padding:56px 30px;text-align:center;background:radial-gradient(ellipse at top,rgba(255,122,26,.07),transparent 60%),var(--panel);transition:.2s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--or);background:radial-gradient(ellipse at top,rgba(255,122,26,.16),transparent 60%),var(--panel)}
+.drop .ic{width:74px;height:74px;margin:0 auto 18px;border-radius:18px;background:var(--orbg);border:1px solid var(--orbd);display:grid;place-items:center}
+.drop h2{margin:0 0 6px;font-size:22px}
+.drop p{margin:4px 0;color:var(--muted)}
+.drop .row{margin-top:22px;display:flex;gap:10px;justify-content:center}
+.note{margin-top:22px;font-size:12px;color:var(--dim);display:flex;gap:6px;justify-content:center;align-items:center}
+
+/* Main */
+.main{flex:1;display:none;min-height:0}
+.side{width:300px;flex:none;border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:14px 14px 30px}
+.side h3{margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.sidehead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.fgroup{border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;background:var(--panel2)}
+.fgroup>summary{list-style:none;cursor:pointer;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:13px}
+.fgroup>summary::-webkit-details-marker{display:none}
+.fgroup>summary .cnt{font-size:11px;color:var(--or2);background:var(--orbg);border-radius:99px;padding:1px 8px;display:none}
+.fgroup>summary .cnt.on{display:inline-block}
+.fgroup>summary:after{content:"▾";color:var(--dim);margin-left:8px}
+.fgroup:not([open])>summary:after{content:"▸"}
+.fbody{padding:0 12px 12px}
+.ms-tools{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.ms-tools input{flex:1;min-width:0}
+.link{background:none;border:none;color:var(--or2);cursor:pointer;font-size:12px;padding:2px 4px}
+.link:hover{text-decoration:underline}
+.ms-list{max-height:190px;overflow:auto;border-top:1px solid var(--line);padding-top:4px}
+.ms-item{display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:6px;cursor:pointer;font-size:13px}
+.ms-item:hover{background:#23232a}
+.ms-item .c{margin-left:auto;color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.ms-item.hide{display:none}
+input[type=checkbox]{accent-color:var(--or);width:15px;height:15px;margin:0}
+.inp{background:#0f0f12;border:1px solid var(--line2);border-radius:7px;padding:6px 9px;outline:none;width:100%}
+.inp:focus{border-color:var(--or)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:4px 10px;border-radius:99px;border:1px solid var(--line2);background:#101013;cursor:pointer;font-size:12px;user-select:none}
+.chip:hover{border-color:var(--or)}
+.chip.on{background:var(--orbg);border-color:var(--or);color:var(--or2)}
+.chip .c{color:var(--dim);margin-left:4px}
+.tri{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;margin:6px 0}
+.seg{display:flex;border:1px solid var(--line2);border-radius:7px;overflow:hidden}
+.seg button{flex:1;background:#101013;border:none;padding:4px 0;font-size:12px;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button.on{background:var(--or);color:#111;font-weight:700}
+.range{display:flex;gap:6px;align-items:center}
+.range span{color:var(--dim)}
+.lbl{font-size:12px;color:var(--muted);margin:8px 0 4px}
+.hint{font-size:11px;color:var(--dim);margin-top:6px}
+
+.content{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.voy{display:flex;flex-wrap:wrap;gap:18px;padding:12px 18px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(255,122,26,.08),transparent 50%)}
+.voy .kv b{display:block;font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.6px}
+.voy .kv span{font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px 18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;position:relative;overflow:hidden}
+.stat:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--or)}
+.stat b{display:block;font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.6px}
+.stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .t{font-size:12px;color:var(--dim)}
+.tabs{display:flex;gap:4px;padding:0 18px;border-bottom:1px solid var(--line)}
+.tab{padding:10px 14px;border:none;background:none;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:2px solid transparent}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--or2);border-bottom-color:var(--or)}
+.pane{flex:1;overflow:auto;padding:14px 18px 20px;display:none}
+.pane.on{display:block}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.toolbar .muted{color:var(--muted);font-size:13px}
+
+table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.grid th{position:sticky;top:0;background:#1e1e24;color:var(--muted);text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer;user-select:none;z-index:1}
+.grid th:hover{color:var(--text)}
+.grid th.s{color:var(--or2)}
+.grid th .ar{font-size:10px;margin-left:4px}
+.grid td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.grid tbody tr{cursor:pointer}
+.grid tbody tr:nth-child(even) td{background:#111114}
+.grid tbody tr:hover td{background:#221a14}
+.grid td.n,.grid th.n{text-align:right;font-variant-numeric:tabular-nums}
+.grid .mono{font-family:var(--mono);font-size:12.5px}
+.tblwrap{border:1px solid var(--line);border-radius:var(--r);overflow:auto;max-height:calc(100vh - 360px);min-height:200px}
+.tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;font-weight:700}
+.t-full{background:rgba(62,207,142,.12);color:var(--ok)}
+.t-empty{background:#26262d;color:var(--muted)}
+.t-rf{background:rgba(90,169,255,.14);color:var(--blue)}
+.t-dg{background:rgba(255,93,93,.14);color:var(--err)}
+.t-oog{background:rgba(255,176,32,.14);color:var(--warn)}
+.pager{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--muted);font-size:13px}
+.pager select{background:#0f0f12;border:1px solid var(--line2);border-radius:6px;padding:4px}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+.grid tr.tot td{background:#1a1510!important;font-weight:700;color:var(--or2)}
+.bar{height:6px;background:#23232a;border-radius:4px;overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;background:var(--or)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1300px){.two{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card h4{margin:0 0 10px;font-size:13px;color:var(--or2);text-transform:uppercase;letter-spacing:.8px}
+.kvgrid{display:grid;grid-template-columns:180px 1fr;gap:6px 12px;font-size:13px}
+.kvgrid div:nth-child(odd){color:var(--muted)}
+.vlist{list-style:none;padding:0;margin:0}
+.vlist li{padding:6px 0;border-bottom:1px solid var(--line);display:flex;gap:8px}
+.vlist li:last-child{border-bottom:none}
+pre.raw{background:#08080a;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;overflow:auto;max-height:340px;margin:0;white-space:pre}
+pre.raw .tg{color:var(--or2);font-weight:700}
+
+/* Modal, overlay, toast */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:14px;width:min(760px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal header{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal header h3{margin:0;font-size:16px}
+.modal .body{padding:16px 18px}
+.modal footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+.x:hover{color:var(--or)}
+.dropveil{position:fixed;inset:0;background:rgba(255,122,26,.10);border:3px dashed var(--or);z-index:60;display:none;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--or2);pointer-events:none}
+.dropveil.on{display:flex}
+.toast{position:fixed;right:20px;bottom:20px;z-index:70;display:flex;flex-direction:column;gap:8px}
+.toast div{background:#1d1d22;border:1px solid var(--line2);border-left:4px solid var(--or);padding:10px 14px;border-radius:8px;max-width:420px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:in .2s}
+.toast div.ok{border-left-color:var(--ok)}.toast div.err{border-left-color:var(--err)}
+@keyframes in{from{transform:translateY(10px);opacity:0}}
+.expsum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.warnbox{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.35);color:#ffd27a;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px}
+.clickable{cursor:pointer}.clickable:hover{color:var(--or2);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="logo"><div class="mark">B</div>BAPLIE Studio<small>view · filter · export</small></div>
+    <div class="fileinfo" id="fileinfo"></div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnOpen">Open file</button>
+    <button class="btn" id="btnClear" disabled>Close</button>
+    <button class="btn primary" id="btnExport" disabled>⬇ Export filtered BAPLIE</button>
+    <input type="file" id="fileInput" accept=".edi,.txt,.bap,.baplie,.edifact,*/*" hidden>
+  </div>
+
+  <div class="landing" id="landing">
+    <div class="drop" id="drop">
+      <div class="ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ff7a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></div>
+      <h2>Drop a BAPLIE EDI file here</h2>
+      <p>or click to browse · supports BAPLIE 2.x (D.95B / SMDG 2.x) and 3.x (D.13B / SMDG 3.x)</p>
+      <div class="row">
+        <button class="btn primary" id="btnBrowse">Browse file</button>
+        <button class="btn" id="btnSample">Load demo file</button>
+      </div>
+      <div class="note">🔒 Files are processed entirely in your browser. Nothing is uploaded or sent anywhere.</div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <aside class="side" id="side"></aside>
+    <section class="content">
+      <div class="voy" id="voy"></div>
+      <div class="stats" id="stats"></div>
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-tab="cont">Containers</button>
+        <button class="tab" data-tab="ops">Operator summary</button>
+        <button class="tab" data-tab="ports">Port summary</button>
+        <button class="tab" data-tab="info">Header &amp; validation</button>
+      </div>
+      <div class="pane on" id="pane-cont"></div>
+      <div class="pane" id="pane-ops"></div>
+      <div class="pane" id="pane-ports"></div>
+      <div class="pane" id="pane-info"></div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="dropveil" id="dropveil">Drop BAPLIE file to load</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= BAPLIE CORE (parser / extractor / exporter) ================= */
+const BP = (() => {
+  'use strict';
+
+  // ---------- Low-level EDIFACT tokenising ----------
+  function readEnvelope(text) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    text = text.replace(/^\s+/, '');
+    const d = { comp: ':', elem: '+', dec: '.', rel: '?', rep: ' ', seg: "'" };
+    let una = null, body = text;
+    if (text.startsWith('UNA') && text.length >= 9) {
+      d.comp = text[3]; d.elem = text[4]; d.dec = text[5]; d.rel = text[6]; d.rep = text[7]; d.seg = text[8];
+      una = text.slice(0, 9);
+      body = text.slice(9);
+    }
+    // Detect line-ending style used after segment terminators
+    let lineEnd = '';
+    if (body.includes(d.seg + '\r\n')) lineEnd = '\r\n';
+    else if (body.includes(d.seg + '\n')) lineEnd = '\n';
+    // Detect hard-wrapped files (line breaks not directly after a terminator) -> strip all breaks
+    const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wrapped = new RegExp('[^' + esc(d.seg) + '\\r\\n][\\r\\n]').test(body.replace(/[\r\n]+$/, ''));
+    if (wrapped) { body = body.replace(/[\r\n]+/g, ''); lineEnd = ''; }
+    return { d, una, body, lineEnd, wrapped };
+  }
+
+  function splitSegments(body, d) {
+    const out = []; let cur = '';
+    const push = () => { const s = cur.replace(/^\s+/, '').replace(/[\r\n]+$/, ''); if (s.length) out.push(s); cur = ''; };
+    for (let i = 0; i < body.length; i++) {
+      const c = body[i];
+      if (c === d.rel && d.rel !== ' ') { cur += c; if (i + 1 < body.length) cur += body[++i]; continue; }
+      if (c === d.seg) { push(); continue; }
+      cur += c;
+    }
+    if (cur.trim().length) push();
+    return out;
+  }
+
+  function splitEsc(str, sep, rel) {
+    const out = []; let cur = '';
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (c === rel && rel !== ' ') { cur += c; if (i + 1 < str.length) cur += str[++i]; continue; }
+      if (c === sep) { out.push(cur); cur = ''; continue; }
+      cur += c;
+    }
+    out.push(cur); return out;
+  }
+  function unesc(s, rel) {
+    if (rel === ' ' || !s.includes(rel)) return s;
+    let o = '';
+    for (let i = 0; i < s.length; i++) { if (s[i] === rel && i + 1 < s.length) o += s[++i]; else o += s[i]; }
+    return o;
+  }
+  function parseSeg(raw, d) {
+    const rawEl = splitEsc(raw, d.elem, d.rel);
+    return { raw, rawEl, tag: rawEl[0].trim().toUpperCase(), el: rawEl.map(e => splitEsc(e, d.comp, d.rel).map(c => unesc(c, d.rel))) };
+  }
+  const g = (s, i, j = 0) => (s && s.el[i] && s.el[i][j] != null) ? s.el[i][j].trim() : '';
+
+  // ---------- Structure ----------
+  function parse(text) {
+    const env = readEnvelope(text);
+    const segs = splitSegments(env.body, env.d).map(r => parseSeg(r, env.d));
+    const items = []; const warnings = []; let msg = null;
+    for (const s of segs) {
+      if (s.tag === 'UNH') {
+        if (msg) { warnings.push('Message ' + g(msg.unh, 1) + ' has no UNT before the next UNH.'); items.push({ type: 'msg', msg }); }
+        msg = { unh: s, header: [s], blocks: [], unt: null }; continue;
+      }
+      if (msg) {
+        if (s.tag === 'UNT') { msg.unt = s; items.push({ type: 'msg', msg }); msg = null; continue; }
+        if (s.tag === 'LOC' && g(s, 1) === '147') { msg.blocks.push({ segs: [s] }); continue; }
+        if (msg.blocks.length) msg.blocks[msg.blocks.length - 1].segs.push(s); else msg.header.push(s);
+      } else items.push({ type: 'seg', seg: s });
+    }
+    if (msg) { warnings.push('Message ' + g(msg.unh, 1) + ' has no UNT segment.'); items.push({ type: 'msg', msg }); }
+    const messages = items.filter(i => i.type === 'msg').map(i => i.msg);
+    const parsed = { ...env, segCount: segs.length, items, messages, warnings };
+    parsed.validation = validate(parsed);
+    return parsed;
+  }
+
+  function validate(p) {
+    const issues = [...(p.warnings || [])]; const ok = [];
+    const unb = p.items.find(i => i.type === 'seg' && i.seg.tag === 'UNB');
+    const unz = p.items.find(i => i.type === 'seg' && i.seg.tag === 'UNZ');
+    if (!unb) issues.push('UNB (interchange header) not found.'); else ok.push('UNB interchange header present.');
+    if (!unz) issues.push('UNZ (interchange trailer) not found.');
+    if (!p.messages.length) issues.push('No UNH/UNT message found.');
+    p.messages.forEach((m, i) => {
+      const type = g(m.unh, 2, 0);
+      if (type && type !== 'BAPLIE') issues.push(`Message ${i + 1} is type "${type}", not BAPLIE.`);
+      const actual = m.header.length + m.blocks.reduce((a, b) => a + b.segs.length, 0) + 1;
+      if (m.unt) {
+        const declared = parseInt(g(m.unt, 1), 10);
+        if (declared !== actual) issues.push(`Message ${g(m.unh, 1)}: UNT declares ${declared} segments, actual is ${actual}.`);
+        else ok.push(`Message ${g(m.unh, 1)}: UNT segment count ${actual} matches.`);
+        if (g(m.unt, 2) !== g(m.unh, 1)) issues.push(`Message reference mismatch: UNH "${g(m.unh, 1)}" vs UNT "${g(m.unt, 2)}".`);
+      }
+      if (!m.blocks.length) issues.push(`Message ${g(m.unh, 1)} contains no stowage positions (LOC+147).`);
+    });
+    if (unb && unz) {
+      if (g(unb.seg, 5) !== g(unz.seg, 2)) issues.push(`Interchange reference mismatch: UNB "${g(unb.seg, 5)}" vs UNZ "${g(unz.seg, 2)}".`);
+      const n = parseInt(g(unz.seg, 1), 10);
+      if (n !== p.messages.length) issues.push(`UNZ declares ${n} message(s), found ${p.messages.length}.`);
+      else ok.push(`UNZ message count ${n} matches.`);
+    }
+    return { issues, ok, valid: issues.length === 0 };
+  }
+
+  // ---------- Business extraction ----------
+  const SIZE = { '1': '10', '2': '20', '3': '30', '4': '40', 'L': '45', 'M': '48', 'P': '53', 'B': '24', 'C': '24', 'G': '41', 'H': '43', 'K': '44' };
+  const HEIGHT = { '0': "8'", '2': "8'6\"", '4': "9'", '5': "9'6\"", '6': ">9'6\"", '8': "4'3\"", '9': "≤4'" };
+  function typeOf(iso) {
+    if (!iso || iso.length < 3) return 'Unknown';
+    const t = iso[2];
+    if (/[A-Z]/i.test(t)) return ({ G: 'General', V: 'Ventilated', B: 'Bulk', S: 'Named cargo', R: 'Reefer', H: 'Insulated', U: 'Open top', P: 'Flat rack', T: 'Tank', K: 'Tank', N: 'Tank', A: 'Air/Surface' })[t.toUpperCase()] || 'Other';
+    const n = parseInt(iso.slice(2, 4), 10);
+    if (isNaN(n)) return 'Other';
+    if (n < 20) return 'General'; if (n < 30) return 'Insulated'; if (n < 50) return 'Reefer';
+    if (n < 60) return 'Open top'; if (n < 70) return 'Flat rack'; if (n < 80) return 'Tank'; if (n < 90) return 'Bulk';
+    return 'Other';
+  }
+  const teuOf = size => { const n = parseFloat(size); if (!n) return 0; return n <= 10 ? 0.5 : n < 30 ? 1 : n < 40 ? 1.5 : 2; };
+  const OOG_Q = new Set(['5', '6', '7', '8', '9', '10', '11', '12', '13', 'OVF', 'OVB', 'OVR', 'OVL', 'OVH']);
+  const OOG_LBL = { '5': 'F', '6': 'B', '7': 'R', '8': 'L', '9': 'H', 'OVF': 'F', 'OVB': 'B', 'OVR': 'R', 'OVL': 'L', 'OVH': 'H' };
+
+  function extract(block, msgIdx, idx) {
+    const r = { idx, msgIdx, block, pos: '', bay: null, row: null, tier: null, posSort: 0, cntr: '', iso: '', size: '', height: '', type: '', fe: '',
+      operator: '', pol: '', pod: '', dlv: '', weight: null, wUnit: '', vgm: false, temp: '', tempUnit: '', reefer: false,
+      dgList: [], dg: '', oog: '', booking: '', eqdCount: 0, handling: [] };
+    let wCand = [];
+    for (const s of block.segs) {
+      switch (s.tag) {
+        case 'LOC': {
+          const q = g(s, 1), v = g(s, 2);
+          if (q === '147' && !r.pos) {
+            r.pos = v;
+            const p = v.replace(/\D/g, '');
+            const p7 = p.length >= 7 ? p.slice(-7) : p.padStart(7, '0');
+            if (p.length >= 5) {
+              r.bay = parseInt(p7.slice(0, 3), 10); r.row = parseInt(p7.slice(3, 5), 10); r.tier = parseInt(p7.slice(5, 7), 10);
+              r.posSort = r.bay * 1e4 + r.row * 1e2 + r.tier;
+            }
+          } else if (q === '9' && !r.pol) r.pol = v;
+          else if (q === '11' && !r.pod) r.pod = v;
+          else if (q === '83' && !r.dlv) r.dlv = v;
+          break;
+        }
+        case 'EQD': {
+          r.eqdCount++;
+          if (!r.cntr) {
+            r.cntr = g(s, 2); r.iso = g(s, 3);
+            const fe = g(s, 6);
+            r.fe = fe === '5' ? 'Full' : fe === '4' ? 'Empty' : (fe || '');
+          }
+          break;
+        }
+        case 'NAD': {
+          const q = g(s, 1);
+          if ((q === 'CA' || q === 'CF') && !r.operator) r.operator = g(s, 2);
+          break;
+        }
+        case 'MEA': {
+          const q1 = g(s, 1), q2 = g(s, 2), unit = g(s, 3, 0), val = parseFloat(g(s, 3, 1));
+          if (!isNaN(val)) wCand.push({ q: (q1 + '/' + q2).toUpperCase(), unit, val });
+          break;
+        }
+        case 'TMP': { r.temp = g(s, 2, 0); r.tempUnit = g(s, 2, 1); r.reefer = true; break; }
+        case 'DGS': { const cls = g(s, 2), un = g(s, 3); r.dgList.push((cls || '?') + (un ? '/' + un : '')); break; }
+        case 'DIM': { const q = g(s, 1).toUpperCase(); if (OOG_Q.has(q)) { const l = OOG_LBL[q] || q; if (!r.oog.includes(l)) r.oog += l; } break; }
+        case 'RFF': { const q = g(s, 1).toUpperCase(); const v = g(s, 1, 1); if ((q === 'BN' || q === 'BM') && v && v !== '1' && !r.booking) r.booking = v; break; }
+        case 'HAN': { const h = g(s, 1); if (h) r.handling.push(h); break; }
+      }
+    }
+    // Weight preference: VGM > gross (AET/WT/G) > anything
+    const pick = wCand.find(w => w.q.includes('VGM')) || wCand.find(w => /(^|\/)(AET|WT|G|AAE)(\/|$)/.test(w.q)) || wCand[0];
+    if (pick) {
+      r.vgm = pick.q.includes('VGM'); r.wUnit = pick.unit;
+      r.weight = /LBR|LB/i.test(pick.unit) ? Math.round(pick.val * 0.45359237) : pick.val;
+    }
+    r.size = SIZE[(r.iso[0] || '').toUpperCase()] || (r.iso ? '?' : '');
+    r.height = HEIGHT[r.iso[1]] || '';
+    r.type = r.iso ? typeOf(r.iso) : '';
+    if (r.type === 'Reefer' && r.temp) r.reefer = true;
+    r.teu = teuOf(r.size);
+    r.dg = r.dgList.join(', ');
+    r.isDG = r.dgList.length > 0;
+    r.isOOG = !!r.oog;
+    if (!r.cntr) r.cntr = r.eqdCount ? '(no id)' : '(empty slot)';
+    return r;
+  }
+
+  function extractRecords(p) {
+    const recs = [];
+    p.messages.forEach((m, mi) => m.blocks.forEach(b => recs.push(extract(b, mi, recs.length))));
+    return recs;
+  }
+
+  function headerInfo(p) {
+    const m = p.messages[0]; const info = {};
+    const unb = p.items.find(i => i.type === 'seg' && i.seg.tag === 'UNB');
+    if (unb) {
+      info.syntax = g(unb.seg, 1, 0) + ':' + g(unb.seg, 1, 1);
+      info.sender = g(unb.seg, 2); info.recipient = g(unb.seg, 3);
+      info.prepared = fmtDate(g(unb.seg, 4, 0) + g(unb.seg, 4, 1), g(unb.seg, 4, 0).length === 8 ? '203' : '201');
+      info.interchangeRef = g(unb.seg, 5);
+    }
+    if (!m) return info;
+    const t = m.unh.el[2] || [];
+    info.messageType = (t[0] || '');
+    info.version = [t[1], t[2], t[3]].filter(Boolean).join(':');
+    info.assoc = t[4] || '';
+    info.isV3 = /D:?1[0-9]|SMDG3/i.test((t[2] || '') + (t[4] || '')) || /^1\d[AB]$/i.test(t[2] || '');
+    info.messageRef = g(m.unh, 1);
+    for (const s of m.header) {
+      if (s.tag === 'BGM') info.docNo = g(s, 2) || g(s, 1);
+      if (s.tag === 'TDT' && !info.voyage) {
+        info.voyage = g(s, 2);
+        info.carrier = g(s, 5);
+        const v = s.el[8] || [];
+        info.vesselId = (v[0] || '').trim(); info.vesselIdType = (v[1] || '').trim();
+        info.vesselName = (v[3] || '').trim() || (v[0] || '').trim();
+      }
+      if (s.tag === 'LOC') {
+        if (g(s, 1) === '5') info.depPort = g(s, 2);
+        if (g(s, 1) === '61') info.nextPort = g(s, 2);
+      }
+      if (s.tag === 'DTM') {
+        const q = g(s, 1), v = g(s, 1, 1), f = g(s, 1, 2);
+        const lbl = { '137': 'docDate', '178': 'ata', '132': 'eta', '133': 'etd', '136': 'atd' }[q];
+        if (lbl && !info[lbl]) info[lbl] = fmtDate(v, f);
+      }
+    }
+    return info;
+  }
+
+  function fmtDate(v, f) {
+    if (!v) return '';
+    let y, mo, d, h = '', mi = '';
+    if ((f === '203' || v.length === 12) && v.length >= 12) { y = v.slice(0, 4); mo = v.slice(4, 6); d = v.slice(6, 8); h = v.slice(8, 10); mi = v.slice(10, 12); }
+    else if (v.length === 10) { y = '20' + v.slice(0, 2); mo = v.slice(2, 4); d = v.slice(4, 6); h = v.slice(6, 8); mi = v.slice(8, 10); }
+    else if (v.length === 8) { y = v.slice(0, 4); mo = v.slice(4, 6); d = v.slice(6, 8); }
+    else if (v.length === 6) { y = '20' + v.slice(0, 2); mo = v.slice(2, 4); d = v.slice(4, 6); }
+    else return v;
+    return `${y}-${mo}-${d}` + (h ? ` ${h}:${mi}` : '');
+  }
+
+  // ---------- Export ----------
+  // keep: Set of block objects to retain. Original segment text is re-emitted byte-for-byte;
+  // only UNT segment counts are recalculated.
+  function buildExport(p, keep) {
+    const d = p.d, T = d.seg, NL = p.lineEnd;
+    const out = [];
+    const emit = raw => out.push(raw + T + NL);
+    let head = p.una ? p.una + NL : '';
+    for (const it of p.items) {
+      if (it.type === 'seg') { emit(it.seg.raw); continue; }
+      const m = it.msg;
+      let count = m.header.length + 1;
+      m.header.forEach(s => emit(s.raw));
+      for (const b of m.blocks) { if (keep.has(b)) { b.segs.forEach(s => emit(s.raw)); count += b.segs.length; } }
+      if (m.unt) {
+        const els = m.unt.rawEl.slice();
+        els[1] = String(count);
+        emit(els.join(d.elem));
+      } else {
+        emit(['UNT', String(count), m.unh.rawEl[1] || '1'].join(d.elem));
+      }
+    }
+    return head + out.join('');
+  }
+
+  // ---------- Demo sample (BAPLIE 2.2 / D.95B) ----------
+  function makeSample() {
+    let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const pickR = a => a[Math.floor(rnd() * a.length)];
+    const ops = ['XPF', 'MSK', 'ONE', 'CMA', 'HLC', 'EGL'];
+    const pods = ['THLCH', 'THBKK', 'VNSGN', 'MYPKG'];
+    const segs = [
+      "UNB+UNOA:2+XPF+PARTNER+260929:1200+SMP0001",
+      "UNH+1+BAPLIE:D:95B:UN:SMDG22",
+      "BGM++SAMPLE0240N+9",
+      "DTM+137:2609291200:201",
+      "TDT+20+0240N+++XPF:172:20+++9V1234:103::XPRESS SAMPLE",
+      "LOC+5+SGSIN:139:6",
+      "LOC+61+THLCH:139:6",
+      "DTM+178:2609291000:201",
+      "DTM+132:2610011800:201",
+      "DTM+136:2609292200:201"
+    ];
+    const ck = id => { // ISO 6346 check digit
+      const map = {}; let v = 10;
+      for (let c = 65; c <= 90; c++) { if (v % 11 === 0) v++; map[String.fromCharCode(c)] = v++; }
+      let sum = 0; for (let i = 0; i < 10; i++) { const ch = id[i]; const n = /\d/.test(ch) ? +ch : map[ch]; sum += n * Math.pow(2, i); }
+      return (sum % 11) % 10;
+    };
+    let n = 0;
+    for (let bay = 2; bay <= 22; bay += 4) {
+      for (let row = 1; row <= 6; row++) {
+        for (let tier of [82, 84]) {
+          if (rnd() < 0.2) continue;
+          const op = pickR(ops); const pod = pickR(pods);
+          const reefer = rnd() < 0.12, dg = !reefer && rnd() < 0.1, oog = !reefer && !dg && rnd() < 0.05;
+          const empty = !reefer && !dg && rnd() < 0.15;
+          const is20 = rnd() < 0.35;
+          const iso = reefer ? (is20 ? '22R1' : '45R1') : oog ? '45P3' : (is20 ? '22G1' : (rnd() < 0.7 ? '45G1' : '42G1'));
+          const b = is20 ? bay - 1 : bay;
+          const pos = String(b).padStart(3, '0') + String(row).padStart(2, '0') + String(tier);
+          const prefix = { XPF: 'XPFU', MSK: 'MSKU', ONE: 'ONEU', CMA: 'CMAU', HLC: 'HLXU', EGL: 'EGHU' }[op];
+          const base = prefix + String(100000 + (n * 7919) % 900000).padStart(6, '0');
+          const cntr = base + ck(base);
+          const w = empty ? (is20 ? 2200 : 3900) : Math.round((is20 ? 8000 + rnd() * 16000 : 10000 + rnd() * 18000) / 10) * 10;
+          segs.push(`LOC+147+${pos}::5`);
+          segs.push(`MEA+VGM++KGM:${w}`);
+          if (oog) segs.push('DIM+9+CMT:::45', 'DIM+7+CMT::20');
+          if (reefer) segs.push(`TMP+2+${pickR(['-18.0', '-25.0', '002.0', '013.0'])}:CEL`);
+          segs.push('LOC+9+SGSIN', `LOC+11+${pod}`, `LOC+83+${pod}`, 'RFF+BM:1');
+          if (!empty) segs.push(`RFF+BN:${op}SIN${String(4000 + n).padStart(6, '0')}`);
+          segs.push(`EQD+CN+${cntr}+${iso}+++${empty ? 4 : 5}`, `NAD+CA+${op}:172:20`);
+          if (dg) segs.push(`DGS+IMD+${pickR(['3', '8', '9', '2.1'])}+${pickR(['1263', '1760', '3077', '1950'])}`);
+          n++;
+        }
+      }
+    }
+    const cnt = segs.length - 1 + 1; // from UNH (index 1) to UNT
+    segs.push(`UNT+${cnt}+1`, 'UNZ+1+SMP0001');
+    return segs.join("'\n") + "'\n";
+  }
+
+  return { parse, extractRecords, headerInfo, buildExport, validate, makeSample, fmtDate };
+})();
+
+
+</script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const nf = n => (n == null || isNaN(n)) ? '' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 1 });
+const BLANK = '(blank)';
+
+const S = { name: '', text: '', parsed: null, info: {}, recs: [], filtered: [], sort: { k: 'pos', dir: 1 }, page: 1, size: 100, f: null };
+
+const newFilters = () => ({ op: new Set(), pol: new Set(), pod: new Set(), dlv: new Set(), size: new Set(), type: new Set(), fe: new Set(),
+  reefer: 'any', dg: 'any', oog: 'any', bayFrom: '', bayTo: '', wMin: '', wMax: '', q: '' });
+
+/* ---------------- Loading ---------------- */
+function loadFile(file) {
+  if (!file) return;
+  if (file.size > 60 * 1024 * 1024) return toast('File is larger than 60 MB – is this really a BAPLIE?', 'err');
+  const rd = new FileReader();
+  rd.onload = () => loadText(rd.result, file.name);
+  rd.onerror = () => toast('Could not read file.', 'err');
+  rd.readAsText(file, 'ISO-8859-1'); // byte-preserving read; export writes the same bytes back
+}
+function loadText(text, name) {
+  let p;
+  try { p = BP.parse(text); } catch (e) { return toast('Unable to parse file: ' + e.message, 'err'); }
+  if (!p.messages.length || !p.messages.some(m => m.blocks.length)) {
+    return toast('No BAPLIE stowage data (UNH … LOC+147 … UNT) found in "' + name + '".', 'err');
+  }
+  const type = (p.messages[0].unh.el[2] || [])[0];
+  if (type && type.trim() !== 'BAPLIE') toast('Warning: message type is "' + type + '", not BAPLIE. Proceeding anyway.', 'warn');
+  S.name = name; S.text = text; S.parsed = p; S.info = BP.headerInfo(p); S.recs = BP.extractRecords(p);
+  S.f = newFilters(); S.sort = { k: 'pos', dir: 1 }; S.page = 1;
+  $('#landing').style.display = 'none'; $('#main').style.display = 'flex';
+  $('#btnExport').disabled = false; $('#btnClear').disabled = false;
+  renderFileInfo(); renderSidebar(); renderVoyage(); renderInfo(); apply();
+  toast(`Loaded ${S.recs.length.toLocaleString()} stowage positions from ${name}`, 'ok');
+}
+function closeFile() {
+  Object.assign(S, { name: '', text: '', parsed: null, recs: [], filtered: [] });
+  $('#main').style.display = 'none'; $('#landing').style.display = 'grid';
+  $('#btnExport').disabled = true; $('#btnClear').disabled = true; $('#fileinfo').innerHTML = '';
+  $('#fileInput').value = '';
+}
+
+/* ---------------- Header / file info ---------------- */
+function renderFileInfo() {
+  const i = S.info, v = S.parsed.validation;
+  const ver = [i.messageType, i.version, i.assoc].filter(Boolean).join(' · ');
+  $('#fileinfo').innerHTML = `<span class="pill" title="${esc(S.name)}">📄 ${esc(S.name)}</span>
+    <span class="pill or">${esc(ver || 'EDIFACT')}</span>
+    ${v.valid ? '<span class="pill ok">✓ Structure valid</span>' : `<span class="pill bad" id="pillBad">⚠ ${v.issues.length} issue(s)</span>`}`;
+  const pb = $('#pillBad'); if (pb) pb.onclick = () => switchTab('info');
+}
+function renderVoyage() {
+  const i = S.info;
+  const kv = (k, v) => v ? `<div class="kv"><b>${k}</b><span>${esc(v)}</span></div>` : '';
+  $('#voy').innerHTML = kv('Vessel', i.vesselName) + kv(i.vesselIdType === '146' || /IMO/i.test(i.vesselIdType || '') ? 'IMO' : 'Vessel ID', i.vesselId) +
+    kv('Voyage', i.voyage) + kv('Carrier', i.carrier) + kv('Port', i.depPort) + kv('Next port', i.nextPort) +
+    kv('ETA', i.eta) + kv('ATA', i.ata) + kv('ATD', i.atd) + kv('Doc date', i.docDate) + kv('Sender', i.sender);
+}
+
+/* ---------------- Sidebar filters ---------------- */
+function counts(key) {
+  const m = new Map();
+  for (const r of S.recs) { const v = r[key] || BLANK; m.set(v, (m.get(v) || 0) + 1); }
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(b[0]));
+}
+function msGroup(key, field, title, open) {
+  const list = counts(field);
+  const items = list.map(([v, c]) => `<label class="ms-item" data-v="${esc(v)}"><input type="checkbox" data-ms="${key}" value="${esc(v)}"><span>${esc(v)}</span><span class="c">${c}</span></label>`).join('');
+  return `<details class="fgroup" ${open ? 'open' : ''}><summary>${title}<span class="cnt" id="cnt-${key}"></span></summary><div class="fbody">
+    <div class="ms-tools">${list.length > 6 ? `<input class="inp" placeholder="Search…" data-mssearch="${key}">` : '<span style="flex:1"></span>'}
+    <button class="link" data-msall="${key}">All</button><button class="link" data-msnone="${key}">Clear</button></div>
+    <div class="ms-list" id="ms-${key}">${items}</div><div class="hint">Nothing ticked = no filter</div></div></details>`;
+}
+function chipGroup(key, field, title, order) {
+  let list = counts(field);
+  if (order) list.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  return `<div class="lbl">${title}</div><div class="chips">${list.map(([v, c]) => `<span class="chip" data-chip="${key}" data-v="${esc(v)}">${esc(v === '' ? BLANK : v)}<span class="c">${c}</span></span>`).join('')}</div>`;
+}
+function tri(key, label) {
+  return `<div class="tri"><span>${label}</span><div class="seg" data-tri="${key}">
+    <button data-v="any" class="on">Any</button><button data-v="yes">Only</button><button data-v="no">Exclude</button></div></div>`;
+}
+function renderSidebar() {
+  $('#side').innerHTML = `
+    <div class="sidehead"><h3>Filters</h3><button class="link" id="resetAll">Reset all</button></div>
+    <div class="fgroup" style="padding:10px 12px"><input class="inp" id="q" placeholder="Search container, booking or position…"></div>
+    ${msGroup('op', 'operator', 'Container operator', true)}
+    ${msGroup('pod', 'pod', 'Port of discharge (POD)', true)}
+    ${msGroup('pol', 'pol', 'Port of loading (POL)', false)}
+    ${msGroup('dlv', 'dlv', 'Place of delivery', false)}
+    <details class="fgroup" open><summary>Equipment<span class="cnt" id="cnt-eq"></span></summary><div class="fbody">
+      ${chipGroup('size', 'size', 'Size (ft)', ['20', '40', '45', '48', '53'])}
+      ${chipGroup('type', 'type', 'Type')}
+      ${chipGroup('fe', 'fe', 'Full / Empty')}
+    </div></details>
+    <details class="fgroup" open><summary>Special cargo<span class="cnt" id="cnt-sp"></span></summary><div class="fbody">
+      ${tri('reefer', 'Reefer')}${tri('dg', 'Dangerous')}${tri('oog', 'Out of gauge')}
+    </div></details>
+    <details class="fgroup"><summary>Stowage &amp; weight<span class="cnt" id="cnt-sw"></span></summary><div class="fbody">
+      <div class="lbl">Bay range</div><div class="range"><input class="inp" type="number" min="0" id="bayFrom" placeholder="from"><span>–</span><input class="inp" type="number" min="0" id="bayTo" placeholder="to"></div>
+      <div class="lbl">Weight (kg)</div><div class="range"><input class="inp" type="number" min="0" id="wMin" placeholder="min"><span>–</span><input class="inp" type="number" min="0" id="wMax" placeholder="max"></div>
+    </div></details>`;
+}
+function syncBadges() {
+  const f = S.f;
+  const set = (id, n) => { const el = $('#cnt-' + id); if (el) { el.textContent = n; el.classList.toggle('on', n > 0); } };
+  ['op', 'pod', 'pol', 'dlv'].forEach(k => set(k, f[k].size));
+  set('eq', f.size.size + f.type.size + f.fe.size);
+  set('sp', ['reefer', 'dg', 'oog'].filter(k => f[k] !== 'any').length);
+  set('sw', [f.bayFrom, f.bayTo, f.wMin, f.wMax].filter(v => v !== '').length);
+}
+let qTimer;
+function wireSidebar() {
+  const side = $('#side');
+  side.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset.ms) { const s = S.f[t.dataset.ms]; t.checked ? s.add(t.value) : s.delete(t.value); apply(); }
+  });
+  side.addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.mssearch) {
+      const q = t.value.toLowerCase();
+      document.querySelectorAll('#ms-' + t.dataset.mssearch + ' .ms-item').forEach(el => el.classList.toggle('hide', !el.dataset.v.toLowerCase().includes(q)));
+    } else if (['bayFrom', 'bayTo', 'wMin', 'wMax'].includes(t.id)) { S.f[t.id] = t.value; clearTimeout(qTimer); qTimer = setTimeout(apply, 250); }
+    else if (t.id === 'q') { S.f.q = t.value.trim(); clearTimeout(qTimer); qTimer = setTimeout(apply, 200); }
+  });
+  side.addEventListener('click', e => {
+    const t = e.target.closest('[data-msall],[data-msnone],[data-chip],.seg button,#resetAll');
+    if (!t) return;
+    if (t.id === 'resetAll') { S.f = newFilters(); renderSidebar(); apply(); return; }
+    if (t.dataset.msall || t.dataset.msnone) {
+      const k = t.dataset.msall || t.dataset.msnone, on = !!t.dataset.msall;
+      document.querySelectorAll('#ms-' + k + ' .ms-item:not(.hide) input').forEach(cb => { cb.checked = on; on ? S.f[k].add(cb.value) : S.f[k].delete(cb.value); });
+      apply(); return;
+    }
+    if (t.dataset.chip) { const s = S.f[t.dataset.chip], v = t.dataset.v; s.has(v) ? s.delete(v) : s.add(v); t.classList.toggle('on'); apply(); return; }
+    if (t.parentElement.dataset.tri) { const k = t.parentElement.dataset.tri; S.f[k] = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); apply(); }
+  });
+}
+function setOnlyOperator(op) {
+  S.f.op = new Set([op]);
+  document.querySelectorAll('[data-ms="op"]').forEach(cb => cb.checked = cb.value === op);
+  apply(); switchTab('cont');
+}
+function setOnlyPod(p) {
+  S.f.pod = new Set([p]);
+  document.querySelectorAll('[data-ms="pod"]').forEach(cb => cb.checked = cb.value === p);
+  apply(); switchTab('cont');
+}
+
+/* ---------------- Filtering ---------------- */
+function apply() {
+  const f = S.f, num = v => v === '' ? null : Number(v);
+  const bf = num(f.bayFrom), bt = num(f.bayTo), wn = num(f.wMin), wx = num(f.wMax), q = f.q.toUpperCase();
+  const inSet = (s, v) => !s.size || s.has(v || BLANK);
+  const triOk = (mode, val) => mode === 'any' || (mode === 'yes') === !!val;
+  S.filtered = S.recs.filter(r =>
+    inSet(f.op, r.operator) && inSet(f.pol, r.pol) && inSet(f.pod, r.pod) && inSet(f.dlv, r.dlv) &&
+    inSet(f.size, r.size) && inSet(f.type, r.type) && inSet(f.fe, r.fe) &&
+    triOk(f.reefer, r.reefer) && triOk(f.dg, r.isDG) && triOk(f.oog, r.isOOG) &&
+    (bf == null || (r.bay != null && r.bay >= bf)) && (bt == null || (r.bay != null && r.bay <= bt)) &&
+    (wn == null || (r.weight != null && r.weight >= wn)) && (wx == null || (r.weight != null && r.weight <= wx)) &&
+    (!q || r.cntr.toUpperCase().includes(q) || r.booking.toUpperCase().includes(q) || r.pos.includes(q))
+  );
+  S.page = 1; doSort(); syncBadges(); renderStats(); renderTable(); renderOps(); renderPorts();
+}
+
+/* ---------------- Stats ---------------- */
+function agg(list) {
+  const a = { n: list.length, teu: 0, w: 0, rf: 0, dg: 0, oog: 0, full: 0, empty: 0, s20: 0, s40: 0, s45: 0, ops: new Set() };
+  for (const r of list) {
+    a.teu += r.teu || 0; a.w += r.weight || 0; if (r.reefer) a.rf++; if (r.isDG) a.dg++; if (r.isOOG) a.oog++;
+    if (r.fe === 'Full') a.full++; else if (r.fe === 'Empty') a.empty++;
+    const n = parseFloat(r.size); if (n && n < 30) a.s20++; else if (n >= 45) a.s45++; else if (n >= 30) a.s40++;
+    a.ops.add(r.operator || BLANK);
+  }
+  return a;
+}
+function renderStats() {
+  const A = agg(S.recs), F = agg(S.filtered);
+  const card = (t, v, tot) => `<div class="stat"><b>${t}</b><div class="v">${v}</div><div class="t">of ${tot}</div></div>`;
+  $('#stats').innerHTML = card('Containers', nf(F.n), nf(A.n)) + card('TEU', nf(F.teu), nf(A.teu)) +
+    card('Weight (t)', nf(F.w / 1000), nf(A.w / 1000)) + card('Operators', F.ops.size, A.ops.size) +
+    card('Reefers', nf(F.rf), nf(A.rf)) + card('Dangerous', nf(F.dg), nf(A.dg)) + card('OOG', nf(F.oog), nf(A.oog));
+}
+
+/* ---------------- Container table ---------------- */
+const COLS = [
+  { k: 'pos', t: 'Position', s: r => r.posSort, h: r => `<span class="mono">${esc(fmtPos(r))}</span>` },
+  { k: 'cntr', t: 'Container', h: r => `<span class="mono">${esc(r.cntr)}</span>` },
+  { k: 'iso', t: 'ISO', h: r => `<span class="mono">${esc(r.iso)}</span>` },
+  { k: 'size', t: 'Size', s: r => parseFloat(r.size) || 0 },
+  { k: 'type', t: 'Type' },
+  { k: 'fe', t: 'F/E', h: r => r.fe ? `<span class="tag ${r.fe === 'Full' ? 't-full' : 't-empty'}">${esc(r.fe)}</span>` : '' },
+  { k: 'operator', t: 'Operator', h: r => `<b>${esc(r.operator)}</b>` },
+  { k: 'pol', t: 'POL' }, { k: 'pod', t: 'POD' }, { k: 'dlv', t: 'Delivery' },
+  { k: 'weight', t: 'Weight (kg)', n: 1, s: r => r.weight ?? -1, h: r => nf(r.weight) + (r.vgm ? ' <span class="tag t-full" title="Verified Gross Mass">VGM</span>' : '') },
+  { k: 'temp', t: 'Reefer', s: r => r.reefer ? parseFloat(r.temp) || 0 : -999, h: r => r.reefer ? `<span class="tag t-rf">${esc(r.temp || 'RF')}${r.tempUnit ? ' ' + esc(r.tempUnit === 'CEL' ? '°C' : r.tempUnit === 'FAH' ? '°F' : r.tempUnit) : ''}</span>` : '' },
+  { k: 'dg', t: 'DG (class/UN)', h: r => r.isDG ? `<span class="tag t-dg">${esc(r.dg)}</span>` : '' },
+  { k: 'oog', t: 'OOG', h: r => r.isOOG ? `<span class="tag t-oog">${esc(r.oog)}</span>` : '' },
+  { k: 'booking', t: 'Booking' }
+];
+function fmtPos(r) { return r.bay != null ? `${String(r.bay).padStart(3, '0')} ${String(r.row).padStart(2, '0')} ${String(r.tier).padStart(2, '0')}` : r.pos; }
+function doSort() {
+  const c = COLS.find(c => c.k === S.sort.k) || COLS[0], d = S.sort.dir;
+  const get = c.s || (r => (r[c.k] ?? '').toString());
+  S.filtered.sort((a, b) => { const x = get(a), y = get(b); return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * d || a.idx - b.idx; });
+}
+function renderTable() {
+  const L = S.filtered, pages = Math.max(1, Math.ceil(L.length / S.size));
+  if (S.page > pages) S.page = pages;
+  const start = (S.page - 1) * S.size, rows = L.slice(start, start + S.size);
+  const head = COLS.map(c => `<th class="${c.n ? 'n ' : ''}${S.sort.k === c.k ? 's' : ''}" data-sort="${c.k}">${c.t}${S.sort.k === c.k ? `<span class="ar">${S.sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('');
+  const body = rows.map(r => `<tr data-i="${r.idx}">${COLS.map(c => `<td class="${c.n ? 'n' : ''}">${c.h ? c.h(r) : esc(r[c.k])}</td>`).join('')}</tr>`).join('');
+  $('#pane-cont').innerHTML = `
+    <div class="toolbar"><span class="muted">Showing <b style="color:var(--text)">${nf(L.length)}</b> of ${nf(S.recs.length)} stowage positions · click a row for full details and raw EDI</span></div>
+    <div class="tblwrap">${L.length ? `<table class="grid"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` : '<div class="empty">No containers match the current filters.</div>'}</div>
+    <div class="pager">Rows per page <select id="psize">${[50, 100, 250, 500, 1000].map(n => `<option ${n === S.size ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      <span class="spacer"></span><button class="btn sm" id="pPrev" ${S.page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+      <span>Page ${S.page} / ${pages}</span><button class="btn sm" id="pNext" ${S.page >= pages ? 'disabled' : ''}>Next ›</button></div>`;
+}
+function wireTable() {
+  const pane = $('#pane-cont');
+  pane.addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]');
+    if (th) { const k = th.dataset.sort; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : 1 }; doSort(); renderTable(); return; }
+    if (e.target.id === 'pPrev') { S.page--; renderTable(); return; }
+    if (e.target.id === 'pNext') { S.page++; renderTable(); return; }
+    const tr = e.target.closest('tr[data-i]'); if (tr) showDetail(S.recs[+tr.dataset.i]);
+  });
+  pane.addEventListener('change', e => { if (e.target.id === 'psize') { S.size = +e.target.value; S.page = 1; renderTable(); } });
+}
+
+/* ---------------- Summaries ---------------- */
+function groupTable(field, label, onClickAttr) {
+  const groups = new Map();
+  for (const r of S.filtered) { const k = r[field] || BLANK; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
+  const rows = [...groups.entries()].map(([k, l]) => [k, agg(l)]).sort((a, b) => b[1].n - a[1].n);
+  const T = agg(S.filtered), max = Math.max(1, ...rows.map(r => r[1].n));
+  if (!rows.length) return '<div class="empty">No data for current filters.</div>';
+  const tr = (k, a, tot) => `<tr ${tot ? 'class="tot"' : ''}><td>${tot ? 'Total' : `<span class="clickable" data-${onClickAttr}="${esc(k)}"><b>${esc(k)}</b></span>`}</td>
+    <td class="n">${nf(a.n)}</td><td>${tot ? '' : `<div class="bar"><i style="width:${(a.n / max * 100).toFixed(1)}%"></i></div>`}</td>
+    <td class="n">${nf(a.s20)}</td><td class="n">${nf(a.s40)}</td><td class="n">${nf(a.s45)}</td><td class="n">${nf(a.teu)}</td>
+    <td class="n">${nf(a.full)}</td><td class="n">${nf(a.empty)}</td><td class="n">${nf(a.rf)}</td><td class="n">${nf(a.dg)}</td><td class="n">${nf(a.oog)}</td><td class="n">${nf(a.w / 1000)}</td></tr>`;
+  return `<div class="tblwrap"><table class="grid"><thead><tr><th>${label}</th><th class="n">Units</th><th>Share</th><th class="n">20'</th><th class="n">40'</th><th class="n">45'+</th><th class="n">TEU</th><th class="n">Full</th><th class="n">Empty</th><th class="n">Reefer</th><th class="n">DG</th><th class="n">OOG</th><th class="n">Weight (t)</th></tr></thead>
+    <tbody>${rows.map(([k, a]) => tr(k, a)).join('')}${tr('', T, true)}</tbody></table></div>`;
+}
+function renderOps() {
+  $('#pane-ops').innerHTML = `<div class="toolbar"><span class="muted">Breakdown of the <b style="color:var(--text)">currently filtered</b> containers by operator · click an operator to filter to it only</span></div>${groupTable('operator', 'Operator', 'op')}`;
+}
+function renderPorts() {
+  $('#pane-ports').innerHTML = `<div class="toolbar"><span class="muted">Breakdown of the currently filtered containers by port of discharge · click a port to filter to it only</span></div>${groupTable('pod', 'POD', 'pod')}`;
+}
+function wireSummaries() {
+  $('#pane-ops').addEventListener('click', e => { const t = e.target.closest('[data-op]'); if (t) setOnlyOperator(t.dataset.op); });
+  $('#pane-ports').addEventListener('click', e => { const t = e.target.closest('[data-pod]'); if (t) setOnlyPod(t.dataset.pod); });
+}
+
+/* ---------------- Header & validation ---------------- */
+function rawHtml(segs) { const T = S.parsed.d.seg; return segs.map(s => `<span class="tg">${esc(s.raw.slice(0, 3))}</span>${esc(s.raw.slice(3))}${esc(T)}`).join('\n'); }
+function renderInfo() {
+  const i = S.info, p = S.parsed, v = p.validation;
+  const row = (k, val) => val ? `<div>${k}</div><div>${esc(val)}</div>` : '';
+  const hdr = p.messages[0] ? p.messages[0].header : [];
+  const env = p.items.filter(x => x.type === 'seg').map(x => x.seg);
+  $('#pane-info').innerHTML = `<div class="two">
+    <div class="card"><h4>Interchange &amp; message</h4><div class="kvgrid">
+      ${row('Syntax', i.syntax)}${row('Sender', i.sender)}${row('Recipient', i.recipient)}${row('Prepared', i.prepared)}
+      ${row('Interchange ref', i.interchangeRef)}${row('Message type', i.messageType)}${row('Directory', i.version)}${row('Association code', i.assoc)}
+      ${row('Message ref', i.messageRef)}${row('Document no.', i.docNo)}${row('Messages', String(p.messages.length))}${row('Total segments', nf(p.segCount))}
+      ${row('Delimiters', `component "${p.d.comp}"  element "${p.d.elem}"  release "${p.d.rel}"  terminator "${p.d.seg}"` + (p.una ? ' (UNA)' : ' (default)'))}
+      ${row('Line format', p.wrapped ? 'Hard-wrapped (unwrapped on export)' : p.lineEnd === '\r\n' ? 'One segment per line (CRLF)' : p.lineEnd === '\n' ? 'One segment per line (LF)' : 'Continuous stream')}
+    </div></div>
+    <div class="card"><h4>Structure validation</h4><ul class="vlist">
+      ${v.issues.map(x => `<li><span style="color:var(--err)">✕</span>${esc(x)}</li>`).join('')}
+      ${v.ok.map(x => `<li><span style="color:var(--ok)">✓</span>${esc(x)}</li>`).join('')}
+    </ul>${v.issues.length ? '<div class="warnbox">Issues in the source file are reported for information. On export, UNT segment counts are always recalculated from the actual content.</div>' : ''}</div>
+  </div>
+  <div class="card" style="margin-top:16px"><h4>Envelope &amp; message header segments (always retained on export)</h4><pre class="raw">${p.una ? `<span class="tg">UNA</span>${esc(p.una.slice(3))}\n` : ''}${rawHtml(env.filter(s => s.tag !== 'UNZ'))}\n${rawHtml(hdr)}</pre></div>`;
+}
+
+/* ---------------- Detail modal ---------------- */
+function showDetail(r) {
+  const row = (k, v) => (v || v === 0) ? `<div>${k}</div><div>${v}</div>` : '';
+  openModal(`<header><h3>${esc(r.cntr)} <span class="pill or" style="margin-left:8px">${esc(fmtPos(r))}</span></h3><button class="x" data-close>×</button></header>
+  <div class="body"><div class="kvgrid">
+    ${row('Stowage position', esc(r.pos) + (r.bay != null ? ` &nbsp;<span style="color:var(--muted)">(bay ${r.bay}, row ${r.row}, tier ${r.tier})</span>` : ''))}
+    ${row('ISO size/type', esc(r.iso) + (r.iso ? ` &nbsp;<span style="color:var(--muted)">${esc(r.size)}' ${esc(r.height)} ${esc(r.type)}</span>` : ''))}
+    ${row('Full / Empty', esc(r.fe))}${row('Operator', '<b>' + esc(r.operator) + '</b>')}
+    ${row('POL / POD / Delivery', [r.pol, r.pod, r.dlv].map(esc).join(' → '))}
+    ${row('Weight', r.weight != null ? nf(r.weight) + ' kg' + (r.vgm ? ' (VGM)' : '') + (r.wUnit && r.wUnit !== 'KGM' ? ` [source unit ${esc(r.wUnit)}]` : '') : '')}
+    ${row('Reefer', r.reefer ? esc(r.temp + ' ' + r.tempUnit) : '')}${row('Dangerous goods', esc(r.dg))}
+    ${row('Out of gauge', esc(r.oog))}${row('Booking', esc(r.booking))}${row('Handling', esc(r.handling.join(', ')))}
+    ${row('Segments in group', String(r.block.segs.length))}
+  </div><div class="lbl" style="margin-top:14px">Raw EDI segments</div><pre class="raw">${rawHtml(r.block.segs)}</pre></div>
+  <footer><button class="btn" data-close>Close</button></footer>`);
+}
+
+/* ---------------- Export ---------------- */
+function suggestName() {
+  const base = S.name.replace(/\.[^.]+$/, '') || 'baplie';
+  const ext = (S.name.match(/\.[^.]+$/) || ['.edi'])[0];
+  const ops = [...S.f.op];
+  const tag = ops.length && ops.length <= 3 ? ops.join('-') : 'filtered';
+  return `${base}_${tag}${ext}`.replace(/[\\/:*?"<>|]+/g, '_');
+}
+function openExport() {
+  if (!S.parsed) return;
+  const F = agg(S.filtered), A = agg(S.recs);
+  const ops = [...F.ops].sort();
+  openModal(`<header><h3>Export filtered BAPLIE</h3><button class="x" data-close>×</button></header>
+  <div class="body">
+    <div class="expsum">
+      <div class="stat"><b>Containers</b><div class="v">${nf(F.n)}</div><div class="t">of ${nf(A.n)}</div></div>
+      <div class="stat"><b>TEU</b><div class="v">${nf(F.teu)}</div><div class="t">of ${nf(A.teu)}</div></div>
+      <div class="stat"><b>Operators</b><div class="v">${ops.length}</div><div class="t">${esc(ops.slice(0, 6).join(', '))}${ops.length > 6 ? '…' : ''}</div></div>
+    </div>
+    <div class="lbl">File name</div><input class="inp" id="expName" value="${esc(suggestName())}">
+    <div class="hint" style="font-size:12px;margin-top:10px;line-height:1.6">
+      ✓ Envelope (UNA/UNB/UNZ) and message header (UNH, BGM, DTM, TDT, LOC …) are kept unchanged<br>
+      ✓ Each kept container's complete segment group (LOC+147 … up to the next position) is written exactly as in the source<br>
+      ✓ UNT segment count recalculated · original delimiters, encoding and line format preserved<br>
+      ✓ Output is re-parsed and validated before download
+    </div>
+    ${F.n === 0 ? '<div class="warnbox">The current filter matches no containers. The export will contain only the header and trailer.</div>' : ''}
+  </div>
+  <footer><button class="btn" data-close>Cancel</button><button class="btn primary" id="doExport">⬇ Export ${nf(F.n)} containers</button></footer>`);
+  $('#doExport').onclick = () => doExport($('#expName').value.trim() || suggestName());
+}
+function doExport(fname) {
+  const keep = new Set(S.filtered.map(r => r.block));
+  const out = BP.buildExport(S.parsed, keep);
+  // Self-check: re-parse output
+  const chk = BP.parse(out), recs = BP.extractRecords(chk);
+  const problems = [...chk.validation.issues.filter(x => !/contains no stowage/.test(x) || S.filtered.length)];
+  if (recs.length !== S.filtered.length) problems.push(`Container count mismatch after export (${recs.length} vs ${S.filtered.length}).`);
+  const srcIssues = new Set(S.parsed.validation.issues.filter(x => !/UNT declares/.test(x)));
+  const newProblems = problems.filter(x => !srcIssues.has(x));
+  // Byte-preserving write (latin-1 round trip of what was read)
+  const bytes = new Uint8Array(out.length);
+  for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 0xFF;
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+  const a = document.createElement('a'); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  closeModal();
+  if (newProblems.length) toast('Exported with warnings: ' + newProblems.join(' '), 'err');
+  else toast(`Exported ${recs.length.toLocaleString()} containers to ${fname} · structure validated ✓`, 'ok');
+}
+
+/* ---------------- Modal / tabs / toast ---------------- */
+function openModal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('on'); }
+function closeModal() { $('#overlay').classList.remove('on'); $('#modal').innerHTML = ''; }
+$('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay' || e.target.closest('[data-close]')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + t));
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) switchTab(b.dataset.tab); });
+function toast(msg, kind) {
+  const d = document.createElement('div'); d.className = kind || ''; d.textContent = msg; $('#toast').appendChild(d);
+  setTimeout(() => d.remove(), kind === 'err' ? 8000 : 4500);
+}
+
+/* ---------------- Drag & drop / buttons ---------------- */
+const fi = $('#fileInput');
+fi.addEventListener('change', () => loadFile(fi.files[0]));
+$('#btnOpen').onclick = $('#btnBrowse').onclick = e => { e.stopPropagation(); fi.value = ''; fi.click(); };
+$('#drop').onclick = () => { fi.value = ''; fi.click(); };
+$('#btnSample').onclick = e => { e.stopPropagation(); loadText(BP.makeSample(), 'DEMO_BAPLIE_D95B.edi'); };
+$('#btnClear').onclick = closeFile;
+$('#btnExport').onclick = openExport;
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('#dropveil').classList.add('on'); $('#drop').classList.add('over'); });
+window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#dropveil').classList.remove('on'); $('#drop').classList.remove('over'); } });
+window.addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; $('#dropveil').classList.remove('on'); $('#drop').classList.remove('over');
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (!files || !files.length) return;
+  if (files.length > 1) toast('Multiple files dropped – loading the first one: ' + files[0].name);
+  loadFile(files[0]);
+});
+
+wireSidebar(); wireTable(); wireSummaries();
+})();
+
+</script>
+</body>
+</html>
