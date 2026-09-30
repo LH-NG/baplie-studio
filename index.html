@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
-<title>BAPLIE Viewer &amp; Filter</title>
+<title>BAPLIE Studio</title>
 <style>
 :root{
   --bg:#0b0b0d; --panel:#141417; --panel2:#1b1b20; --line:#2a2a31; --line2:#35353d;
@@ -18,8 +18,6 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/
 button,input,select{font:inherit;color:inherit}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2c2c33;border-radius:6px;border:2px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
 .app{display:flex;flex-direction:column;height:100vh}
-
-/* Top bar */
 .top{display:flex;align-items:center;gap:14px;padding:10px 18px;background:#08080a;border-bottom:1px solid var(--line)}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px;font-size:16px}
 .logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--or),#c04d00);display:grid;place-items:center;color:#000;font-weight:900}
@@ -36,9 +34,6 @@ button,input,select{font:inherit;color:inherit}
 .btn.primary:hover{background:var(--or2);color:#000}
 .btn:disabled{opacity:.4;pointer-events:none}
 .btn.sm{padding:5px 10px;font-size:12px}
-.btn.ghost{background:transparent}
-
-/* Landing */
 .landing{flex:1;display:grid;place-items:center;padding:30px}
 .drop{width:min(720px,100%);border:2px dashed var(--line2);border-radius:18px;padding:56px 30px;text-align:center;background:radial-gradient(ellipse at top,rgba(255,122,26,.07),transparent 60%),var(--panel);transition:.2s;cursor:pointer}
 .drop:hover,.drop.over{border-color:var(--or);background:radial-gradient(ellipse at top,rgba(255,122,26,.16),transparent 60%),var(--panel)}
@@ -46,9 +41,7 @@ button,input,select{font:inherit;color:inherit}
 .drop h2{margin:0 0 6px;font-size:22px}
 .drop p{margin:4px 0;color:var(--muted)}
 .drop .row{margin-top:22px;display:flex;gap:10px;justify-content:center}
-.note{margin-top:22px;font-size:12px;color:var(--dim);display:flex;gap:6px;justify-content:center;align-items:center}
-
-/* Main */
+.note{margin-top:22px;font-size:12px;color:var(--dim)}
 .main{flex:1;display:none;min-height:0}
 .side{width:300px;flex:none;border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:14px 14px 30px}
 .side h3{margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
@@ -70,7 +63,7 @@ button,input,select{font:inherit;color:inherit}
 .ms-item:hover{background:#23232a}
 .ms-item .c{margin-left:auto;color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
 .ms-item.hide{display:none}
-input[type=checkbox]{accent-color:var(--or);width:15px;height:15px;margin:0}
+input[type=checkbox],input[type=radio]{accent-color:var(--or);width:15px;height:15px;margin:0}
 .inp{background:#0f0f12;border:1px solid var(--line2);border-radius:7px;padding:6px 9px;outline:none;width:100%}
 .inp:focus{border-color:var(--or)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -87,7 +80,6 @@ input[type=checkbox]{accent-color:var(--or);width:15px;height:15px;margin:0}
 .range span{color:var(--dim)}
 .lbl{font-size:12px;color:var(--muted);margin:8px 0 4px}
 .hint{font-size:11px;color:var(--dim);margin-top:6px}
-
 .content{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 .voy{display:flex;flex-wrap:wrap;gap:18px;padding:12px 18px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(255,122,26,.08),transparent 50%)}
 .voy .kv b{display:block;font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.6px}
@@ -106,7 +98,6 @@ input[type=checkbox]{accent-color:var(--or);width:15px;height:15px;margin:0}
 .pane.on{display:block}
 .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .toolbar .muted{color:var(--muted);font-size:13px}
-
 table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .grid th{position:sticky;top:0;background:#1e1e24;color:var(--muted);text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer;user-select:none;z-index:1}
 .grid th:hover{color:var(--text)}
@@ -142,11 +133,9 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .vlist li:last-child{border-bottom:none}
 pre.raw{background:#08080a;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;overflow:auto;max-height:340px;margin:0;white-space:pre}
 pre.raw .tg{color:var(--or2);font-weight:700}
-
-/* Modal, overlay, toast */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:80;padding:20px}
 .overlay.on{display:flex}
-.modal{background:var(--panel);border:1px solid var(--line2);border-radius:14px;width:min(760px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:14px;width:min(780px,100%);max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .modal header{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
 .modal header h3{margin:0;font-size:16px}
 .modal .body{padding:16px 18px}
@@ -162,6 +151,25 @@ pre.raw .tg{color:var(--or2);font-weight:700}
 .expsum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
 .warnbox{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.35);color:#ffd27a;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px}
 .clickable{cursor:pointer}.clickable:hover{color:var(--or2);text-decoration:underline}
+/* Export mode options */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mode{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line2);border-radius:10px;padding:12px;cursor:pointer;background:var(--panel2);transition:.15s}
+.mode:hover{border-color:var(--orbd)}
+.mode.on{border-color:var(--or);background:var(--orbg)}
+.mode input{margin-top:3px}
+.mode b{display:block;font-size:14px}
+.mode span{font-size:12px;color:var(--muted)}
+.opts{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px}
+.opt{display:flex;gap:9px;align-items:flex-start;font-size:13px;cursor:pointer}
+.opt input{margin-top:2px}
+.opt small{display:block;color:var(--dim);font-size:12px}
+.flist{border:1px solid var(--line);border-radius:8px;max-height:230px;overflow:auto;margin-top:6px}
+.flist table{width:100%;border-collapse:collapse;font-size:12.5px}
+.flist th{position:sticky;top:0;background:#1e1e24;color:var(--muted);text-align:left;padding:6px 10px;font-weight:600}
+.flist td{padding:6px 10px;border-top:1px solid var(--line)}
+.flist td.n,.flist th.n{text-align:right;font-variant-numeric:tabular-nums}
+.flist .mono{font-family:var(--mono)}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -175,7 +183,6 @@ pre.raw .tg{color:var(--or2);font-weight:700}
     <button class="btn primary" id="btnExport" disabled>⬇ Export filtered BAPLIE</button>
     <input type="file" id="fileInput" accept=".edi,.txt,.bap,.baplie,.edifact,*/*" hidden>
   </div>
-
   <div class="landing" id="landing">
     <div class="drop" id="drop">
       <div class="ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ff7a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></div>
@@ -185,10 +192,9 @@ pre.raw .tg{color:var(--or2);font-weight:700}
         <button class="btn primary" id="btnBrowse">Browse file</button>
         <button class="btn" id="btnSample">Load demo file</button>
       </div>
-      <div class="note">🔒 Files are processed entirely in your browser. Nothing is uploaded or sent anywhere.</div>
+      <div class="note">Files are processed entirely in your browser. Nothing is uploaded or sent anywhere.</div>
     </div>
   </div>
-
   <div class="main" id="main">
     <aside class="side" id="side"></aside>
     <section class="content">
@@ -207,11 +213,9 @@ pre.raw .tg{color:var(--or2);font-weight:700}
     </section>
   </div>
 </div>
-
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="dropveil" id="dropveil">Drop BAPLIE file to load</div>
 <div class="toast" id="toast"></div>
-
 <script>
 /* ================= BAPLIE CORE (parser / extractor / exporter) ================= */
 const BP = (() => {
@@ -228,11 +232,9 @@ const BP = (() => {
       una = text.slice(0, 9);
       body = text.slice(9);
     }
-    // Detect line-ending style used after segment terminators
     let lineEnd = '';
     if (body.includes(d.seg + '\r\n')) lineEnd = '\r\n';
     else if (body.includes(d.seg + '\n')) lineEnd = '\n';
-    // Detect hard-wrapped files (line breaks not directly after a terminator) -> strip all breaks
     const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const wrapped = new RegExp('[^' + esc(d.seg) + '\\r\\n][\\r\\n]').test(body.replace(/[\r\n]+$/, ''));
     if (wrapped) { body = body.replace(/[\r\n]+/g, ''); lineEnd = ''; }
@@ -390,7 +392,6 @@ const BP = (() => {
         case 'HAN': { const h = g(s, 1); if (h) r.handling.push(h); break; }
       }
     }
-    // Weight preference: VGM > gross (AET/WT/G) > anything
     const pick = wCand.find(w => w.q.includes('VGM')) || wCand.find(w => /(^|\/)(AET|WT|G|AAE)(\/|$)/.test(w.q)) || wCand[0];
     if (pick) {
       r.vgm = pick.q.includes('VGM'); r.wUnit = pick.unit;
@@ -428,7 +429,6 @@ const BP = (() => {
     info.messageType = (t[0] || '');
     info.version = [t[1], t[2], t[3]].filter(Boolean).join(':');
     info.assoc = t[4] || '';
-    info.isV3 = /D:?1[0-9]|SMDG3/i.test((t[2] || '') + (t[4] || '')) || /^1\d[AB]$/i.test(t[2] || '');
     info.messageRef = g(m.unh, 1);
     for (const s of m.header) {
       if (s.tag === 'BGM') info.docNo = g(s, 2) || g(s, 1);
@@ -464,15 +464,35 @@ const BP = (() => {
   }
 
   // ---------- Export ----------
+  // Unique interchange control reference (UNB 0020 / UNZ 0020, an..14) derived from the original one.
+  function deriveRef(orig, seq) {
+    const suffix = String(seq).padStart(3, '0');
+    const base = (orig || 'REF').replace(/[^A-Za-z0-9]/g, '');
+    return (base.slice(0, 14 - suffix.length) + suffix).slice(0, 14);
+  }
+
   // keep: Set of block objects to retain. Original segment text is re-emitted byte-for-byte;
-  // only UNT segment counts are recalculated.
-  function buildExport(p, keep) {
+  // UNT segment counts are recalculated. opts.interchangeRef (optional) replaces the
+  // interchange control reference consistently in UNB and UNZ.
+  function buildExport(p, keep, opts = {}) {
     const d = p.d, T = d.seg, NL = p.lineEnd;
     const out = [];
     const emit = raw => out.push(raw + T + NL);
-    let head = p.una ? p.una + NL : '';
+    const ref = opts.interchangeRef;
+    const withRef = (seg, idx) => {
+      if (!ref || seg.rawEl.length <= idx) return seg.raw;
+      const els = seg.rawEl.slice();
+      const comps = splitEsc(els[idx], d.comp, d.rel); comps[0] = ref; els[idx] = comps.join(d.comp);
+      return els.join(d.elem);
+    };
+    const head = p.una ? p.una + NL : '';
     for (const it of p.items) {
-      if (it.type === 'seg') { emit(it.seg.raw); continue; }
+      if (it.type === 'seg') {
+        if (it.seg.tag === 'UNB') emit(withRef(it.seg, 5));
+        else if (it.seg.tag === 'UNZ') emit(withRef(it.seg, 2));
+        else emit(it.seg.raw);
+        continue;
+      }
       const m = it.msg;
       let count = m.header.length + 1;
       m.header.forEach(s => emit(s.raw));
@@ -486,6 +506,22 @@ const BP = (() => {
       }
     }
     return head + out.join('');
+  }
+
+  // Build and self-validate one export. Returns { text, count, problems }.
+  function exportAndCheck(p, blocks, opts) {
+    const keep = new Set(blocks);
+    const text = buildExport(p, keep, opts);
+    const chk = parse(text);
+    const recs = extractRecords(chk);
+    const srcIssues = new Set(p.validation.issues);
+    const problems = chk.validation.issues.filter(x => !srcIssues.has(x) && !(/contains no stowage/.test(x) && keep.size === 0));
+    if (recs.length !== keep.size) problems.push(`Container count mismatch (${recs.length} vs ${keep.size}).`);
+    if (opts && opts.expectOperator != null) {
+      const bad = recs.filter(r => (r.operator || '') !== opts.expectOperator).length;
+      if (bad) problems.push(`${bad} container(s) with a different operator found in the file.`);
+    }
+    return { text, count: recs.length, problems };
   }
 
   // ---------- Demo sample (BAPLIE 2.2 / D.95B) ----------
@@ -506,7 +542,7 @@ const BP = (() => {
       "DTM+132:2610011800:201",
       "DTM+136:2609292200:201"
     ];
-    const ck = id => { // ISO 6346 check digit
+    const ck = id => {
       const map = {}; let v = 10;
       for (let c = 65; c <= 90; c++) { if (v % 11 === 0) v++; map[String.fromCharCode(c)] = v++; }
       let sum = 0; for (let i = 0; i < 10; i++) { const ch = id[i]; const n = /\d/.test(ch) ? +ch : map[ch]; sum += n * Math.pow(2, i); }
@@ -540,12 +576,12 @@ const BP = (() => {
         }
       }
     }
-    const cnt = segs.length - 1 + 1; // from UNH (index 1) to UNT
+    const cnt = segs.length - 1 + 1;
     segs.push(`UNT+${cnt}+1`, 'UNZ+1+SMP0001');
     return segs.join("'\n") + "'\n";
   }
 
-  return { parse, extractRecords, headerInfo, buildExport, validate, makeSample, fmtDate };
+  return { parse, extractRecords, headerInfo, buildExport, exportAndCheck, deriveRef, validate, makeSample, fmtDate };
 })();
 
 
@@ -558,7 +594,8 @@ const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&a
 const nf = n => (n == null || isNaN(n)) ? '' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 1 });
 const BLANK = '(blank)';
 
-const S = { name: '', text: '', parsed: null, info: {}, recs: [], filtered: [], sort: { k: 'pos', dir: 1 }, page: 1, size: 100, f: null };
+const S = { name: '', parsed: null, info: {}, recs: [], filtered: [], sort: { k: 'pos', dir: 1 }, page: 1, size: 100, f: null,
+  exp: { mode: 'single', delivery: 'zip', uniqueRef: true, includeBlank: true } };
 
 const newFilters = () => ({ op: new Set(), pol: new Set(), pod: new Set(), dlv: new Set(), size: new Set(), type: new Set(), fe: new Set(),
   reefer: 'any', dg: 'any', oog: 'any', bayFrom: '', bayTo: '', wMin: '', wMax: '', q: '' });
@@ -580,7 +617,7 @@ function loadText(text, name) {
   }
   const type = (p.messages[0].unh.el[2] || [])[0];
   if (type && type.trim() !== 'BAPLIE') toast('Warning: message type is "' + type + '", not BAPLIE. Proceeding anyway.', 'warn');
-  S.name = name; S.text = text; S.parsed = p; S.info = BP.headerInfo(p); S.recs = BP.extractRecords(p);
+  S.name = name; S.parsed = p; S.info = BP.headerInfo(p); S.recs = BP.extractRecords(p);
   S.f = newFilters(); S.sort = { k: 'pos', dir: 1 }; S.page = 1;
   $('#landing').style.display = 'none'; $('#main').style.display = 'flex';
   $('#btnExport').disabled = false; $('#btnClear').disabled = false;
@@ -588,7 +625,7 @@ function loadText(text, name) {
   toast(`Loaded ${S.recs.length.toLocaleString()} stowage positions from ${name}`, 'ok');
 }
 function closeFile() {
-  Object.assign(S, { name: '', text: '', parsed: null, recs: [], filtered: [] });
+  Object.assign(S, { name: '', parsed: null, recs: [], filtered: [] });
   $('#main').style.display = 'none'; $('#landing').style.display = 'grid';
   $('#btnExport').disabled = true; $('#btnClear').disabled = true; $('#fileinfo').innerHTML = '';
   $('#fileInput').value = '';
@@ -598,7 +635,7 @@ function closeFile() {
 function renderFileInfo() {
   const i = S.info, v = S.parsed.validation;
   const ver = [i.messageType, i.version, i.assoc].filter(Boolean).join(' · ');
-  $('#fileinfo').innerHTML = `<span class="pill" title="${esc(S.name)}">📄 ${esc(S.name)}</span>
+  $('#fileinfo').innerHTML = `<span class="pill" title="${esc(S.name)}">${esc(S.name)}</span>
     <span class="pill or">${esc(ver || 'EDIFACT')}</span>
     ${v.valid ? '<span class="pill ok">✓ Structure valid</span>' : `<span class="pill bad" id="pillBad">⚠ ${v.issues.length} issue(s)</span>`}`;
   const pb = $('#pillBad'); if (pb) pb.onclick = () => switchTab('info');
@@ -606,7 +643,7 @@ function renderFileInfo() {
 function renderVoyage() {
   const i = S.info;
   const kv = (k, v) => v ? `<div class="kv"><b>${k}</b><span>${esc(v)}</span></div>` : '';
-  $('#voy').innerHTML = kv('Vessel', i.vesselName) + kv(i.vesselIdType === '146' || /IMO/i.test(i.vesselIdType || '') ? 'IMO' : 'Vessel ID', i.vesselId) +
+  $('#voy').innerHTML = kv('Vessel', i.vesselName) + kv(/^(146|IMO)$/i.test(i.vesselIdType || '') ? 'IMO' : 'Vessel ID', i.vesselId) +
     kv('Voyage', i.voyage) + kv('Carrier', i.carrier) + kv('Port', i.depPort) + kv('Next port', i.nextPort) +
     kv('ETA', i.eta) + kv('ATA', i.ata) + kv('ATD', i.atd) + kv('Doc date', i.docDate) + kv('Sender', i.sender);
 }
@@ -628,7 +665,7 @@ function msGroup(key, field, title, open) {
 function chipGroup(key, field, title, order) {
   let list = counts(field);
   if (order) list.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-  return `<div class="lbl">${title}</div><div class="chips">${list.map(([v, c]) => `<span class="chip" data-chip="${key}" data-v="${esc(v)}">${esc(v === '' ? BLANK : v)}<span class="c">${c}</span></span>`).join('')}</div>`;
+  return `<div class="lbl">${title}</div><div class="chips">${list.map(([v, c]) => `<span class="chip" data-chip="${key}" data-v="${esc(v)}">${esc(v)}<span class="c">${c}</span></span>`).join('')}</div>`;
 }
 function tri(key, label) {
   return `<div class="tri"><span>${label}</span><div class="seg" data-tri="${key}">
@@ -691,14 +728,9 @@ function wireSidebar() {
     if (t.parentElement.dataset.tri) { const k = t.parentElement.dataset.tri; S.f[k] = t.dataset.v; t.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === t)); apply(); }
   });
 }
-function setOnlyOperator(op) {
-  S.f.op = new Set([op]);
-  document.querySelectorAll('[data-ms="op"]').forEach(cb => cb.checked = cb.value === op);
-  apply(); switchTab('cont');
-}
-function setOnlyPod(p) {
-  S.f.pod = new Set([p]);
-  document.querySelectorAll('[data-ms="pod"]').forEach(cb => cb.checked = cb.value === p);
+function setOnly(key, val) {
+  S.f[key] = new Set([val]);
+  document.querySelectorAll(`[data-ms="${key}"]`).forEach(cb => cb.checked = cb.value === val);
   apply(); switchTab('cont');
 }
 
@@ -786,13 +818,13 @@ function wireTable() {
 }
 
 /* ---------------- Summaries ---------------- */
-function groupTable(field, label, onClickAttr) {
+function groupTable(field, label, attr) {
   const groups = new Map();
   for (const r of S.filtered) { const k = r[field] || BLANK; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
   const rows = [...groups.entries()].map(([k, l]) => [k, agg(l)]).sort((a, b) => b[1].n - a[1].n);
   const T = agg(S.filtered), max = Math.max(1, ...rows.map(r => r[1].n));
   if (!rows.length) return '<div class="empty">No data for current filters.</div>';
-  const tr = (k, a, tot) => `<tr ${tot ? 'class="tot"' : ''}><td>${tot ? 'Total' : `<span class="clickable" data-${onClickAttr}="${esc(k)}"><b>${esc(k)}</b></span>`}</td>
+  const tr = (k, a, tot) => `<tr ${tot ? 'class="tot"' : ''}><td>${tot ? 'Total' : `<span class="clickable" data-${attr}="${esc(k)}"><b>${esc(k)}</b></span>`}</td>
     <td class="n">${nf(a.n)}</td><td>${tot ? '' : `<div class="bar"><i style="width:${(a.n / max * 100).toFixed(1)}%"></i></div>`}</td>
     <td class="n">${nf(a.s20)}</td><td class="n">${nf(a.s40)}</td><td class="n">${nf(a.s45)}</td><td class="n">${nf(a.teu)}</td>
     <td class="n">${nf(a.full)}</td><td class="n">${nf(a.empty)}</td><td class="n">${nf(a.rf)}</td><td class="n">${nf(a.dg)}</td><td class="n">${nf(a.oog)}</td><td class="n">${nf(a.w / 1000)}</td></tr>`;
@@ -806,8 +838,8 @@ function renderPorts() {
   $('#pane-ports').innerHTML = `<div class="toolbar"><span class="muted">Breakdown of the currently filtered containers by port of discharge · click a port to filter to it only</span></div>${groupTable('pod', 'POD', 'pod')}`;
 }
 function wireSummaries() {
-  $('#pane-ops').addEventListener('click', e => { const t = e.target.closest('[data-op]'); if (t) setOnlyOperator(t.dataset.op); });
-  $('#pane-ports').addEventListener('click', e => { const t = e.target.closest('[data-pod]'); if (t) setOnlyPod(t.dataset.pod); });
+  $('#pane-ops').addEventListener('click', e => { const t = e.target.closest('[data-op]'); if (t) setOnly('op', t.dataset.op); });
+  $('#pane-ports').addEventListener('click', e => { const t = e.target.closest('[data-pod]'); if (t) setOnly('pod', t.dataset.pod); });
 }
 
 /* ---------------- Header & validation ---------------- */
@@ -850,18 +882,50 @@ function showDetail(r) {
   <footer><button class="btn" data-close>Close</button></footer>`);
 }
 
-/* ---------------- Export ---------------- */
-function suggestName() {
-  const base = S.name.replace(/\.[^.]+$/, '') || 'baplie';
-  const ext = (S.name.match(/\.[^.]+$/) || ['.edi'])[0];
+/* ================= EXPORT ================= */
+const safeName = s => String(s).replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '') || 'X';
+const baseName = () => S.name.replace(/\.[^.]+$/, '') || 'baplie';
+const extName = () => (S.name.match(/\.[^.]+$/) || ['.edi'])[0];
+function singleName() {
   const ops = [...S.f.op];
-  const tag = ops.length && ops.length <= 3 ? ops.join('-') : 'filtered';
-  return `${base}_${tag}${ext}`.replace(/[\\/:*?"<>|]+/g, '_');
+  const tag = ops.length && ops.length <= 3 ? ops.map(safeName).join('-') : (S.filtered.length === S.recs.length ? 'all' : 'filtered');
+  return `${safeName(baseName())}_${tag}${extName()}`;
 }
+
+// Plan of files to be produced for the current settings
+function exportPlan() {
+  if (S.exp.mode === 'single') {
+    return [{ name: singleName(), label: 'All filtered operators', recs: S.filtered, expectOperator: null }];
+  }
+  const groups = new Map();
+  for (const r of S.filtered) { const k = r.operator || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
+  let list = [...groups.entries()].sort((a, b) => (a[0] === '') - (b[0] === '') || a[0].localeCompare(b[0]));
+  if (!S.exp.includeBlank) list = list.filter(([k]) => k !== '');
+  const used = new Set();
+  return list.map(([op, recs]) => {
+    let name = `${safeName(baseName())}_${op ? safeName(op) : 'NO-OPERATOR'}${extName()}`, i = 2;
+    while (used.has(name.toLowerCase())) name = name.replace(/(\.[^.]+)$/, `_${i++}$1`);
+    used.add(name.toLowerCase());
+    return { name, label: op || BLANK, recs, expectOperator: op };
+  });
+}
+
 function openExport() {
   if (!S.parsed) return;
-  const F = agg(S.filtered), A = agg(S.recs);
+  renderExportModal();
+}
+function renderExportModal() {
+  const F = agg(S.filtered), A = agg(S.recs), E = S.exp;
   const ops = [...F.ops].sort();
+  const hasBlank = S.filtered.some(r => !r.operator);
+  const plan = exportPlan();
+  const origRef = S.info.interchangeRef || '';
+  const refFor = i => (E.uniqueRef && E.mode === 'split') ? BP.deriveRef(origRef, i + 1) : origRef;
+  const rows = plan.map((f, i) => { const a = agg(f.recs); return `<tr><td class="mono">${esc(f.name)}</td><td><b>${esc(f.label)}</b></td><td class="n">${nf(a.n)}</td><td class="n">${nf(a.teu)}</td><td class="mono">${esc(refFor(i))}</td></tr>`; }).join('');
+  const total = plan.reduce((s, f) => s + f.recs.length, 0);
+  const btnLabel = E.mode === 'single' ? `⬇ Export ${nf(total)} containers`
+    : E.delivery === 'zip' ? `⬇ Download ZIP (${plan.length} files)` : `⬇ Download ${plan.length} files`;
+
   openModal(`<header><h3>Export filtered BAPLIE</h3><button class="x" data-close>×</button></header>
   <div class="body">
     <div class="expsum">
@@ -869,36 +933,130 @@ function openExport() {
       <div class="stat"><b>TEU</b><div class="v">${nf(F.teu)}</div><div class="t">of ${nf(A.teu)}</div></div>
       <div class="stat"><b>Operators</b><div class="v">${ops.length}</div><div class="t">${esc(ops.slice(0, 6).join(', '))}${ops.length > 6 ? '…' : ''}</div></div>
     </div>
-    <div class="lbl">File name</div><input class="inp" id="expName" value="${esc(suggestName())}">
-    <div class="hint" style="font-size:12px;margin-top:10px;line-height:1.6">
-      ✓ Envelope (UNA/UNB/UNZ) and message header (UNH, BGM, DTM, TDT, LOC …) are kept unchanged<br>
-      ✓ Each kept container's complete segment group (LOC+147 … up to the next position) is written exactly as in the source<br>
-      ✓ UNT segment count recalculated · original delimiters, encoding and line format preserved<br>
-      ✓ Output is re-parsed and validated before download
+
+    <div class="lbl">Output</div>
+    <div class="modes">
+      <label class="mode ${E.mode === 'single' ? 'on' : ''}"><input type="radio" name="xmode" value="single" ${E.mode === 'single' ? 'checked' : ''}>
+        <div><b>Single BAPLIE file</b><span>All filtered containers in one EDI file</span></div></label>
+      <label class="mode ${E.mode === 'split' ? 'on' : ''}"><input type="radio" name="xmode" value="split" ${E.mode === 'split' ? 'checked' : ''}>
+        <div><b>One file per operator</b><span>A separate BAPLIE file for each container operator in the filtered data</span></div></label>
     </div>
-    ${F.n === 0 ? '<div class="warnbox">The current filter matches no containers. The export will contain only the header and trailer.</div>' : ''}
+
+    ${E.mode === 'single' ? `
+      <div class="lbl">File name</div><input class="inp" id="expName" value="${esc(E.singleName || singleName())}">
+    ` : `
+      <div class="opts">
+        <div class="lbl" style="margin:0">Delivery</div>
+        <label class="opt"><input type="radio" name="xdel" value="zip" ${E.delivery === 'zip' ? 'checked' : ''}><div>Download as one ZIP file <small>Recommended. Contains one .edi file per operator.</small></div></label>
+        <label class="opt"><input type="radio" name="xdel" value="files" ${E.delivery === 'files' ? 'checked' : ''}><div>Download individual EDI files <small>Your browser may ask you to allow multiple downloads.</small></div></label>
+        <label class="opt" style="margin-top:6px"><input type="checkbox" id="xref" ${E.uniqueRef ? 'checked' : ''}><div>Give each file a unique interchange reference <small>Updates the reference in UNB and UNZ together. Stops EDI gateways and planning systems rejecting the files as duplicates. Everything else stays as in the original file.</small></div></label>
+        ${hasBlank ? `<label class="opt"><input type="checkbox" id="xblank" ${E.includeBlank ? 'checked' : ''}><div>Include containers without an operator <small>Exported as a separate "NO-OPERATOR" file.</small></div></label>` : ''}
+      </div>
+    `}
+
+    <div class="lbl" style="margin-top:12px">Files to be created (${plan.length})</div>
+    <div class="flist"><table><thead><tr><th>File name</th><th>Operator</th><th class="n">Containers</th><th class="n">TEU</th><th>Interchange ref</th></tr></thead><tbody>${rows}</tbody></table></div>
+
+    <div class="hint" style="font-size:12px;margin-top:10px;line-height:1.6">
+      ✓ Envelope (UNA/UNB/UNZ) and message header (UNH, BGM, DTM, TDT, LOC …) retained in every file<br>
+      ✓ Each container's complete segment group is written exactly as in the source<br>
+      ✓ UNT segment count recalculated for each file · original delimiters, encoding and line format preserved<br>
+      ✓ Every file is re-parsed and validated before download${E.mode === 'split' ? ' · operator content verified per file' : ''}
+    </div>
+    ${F.n === 0 ? '<div class="warnbox">The current filter matches no containers.</div>' : ''}
   </div>
-  <footer><button class="btn" data-close>Cancel</button><button class="btn primary" id="doExport">⬇ Export ${nf(F.n)} containers</button></footer>`);
-  $('#doExport').onclick = () => doExport($('#expName').value.trim() || suggestName());
+  <footer><button class="btn" data-close>Cancel</button><button class="btn primary" id="doExport" ${plan.length && total ? '' : 'disabled'}>${btnLabel}</button></footer>`);
 }
-function doExport(fname) {
-  const keep = new Set(S.filtered.map(r => r.block));
-  const out = BP.buildExport(S.parsed, keep);
-  // Self-check: re-parse output
-  const chk = BP.parse(out), recs = BP.extractRecords(chk);
-  const problems = [...chk.validation.issues.filter(x => !/contains no stowage/.test(x) || S.filtered.length)];
-  if (recs.length !== S.filtered.length) problems.push(`Container count mismatch after export (${recs.length} vs ${S.filtered.length}).`);
-  const srcIssues = new Set(S.parsed.validation.issues.filter(x => !/UNT declares/.test(x)));
-  const newProblems = problems.filter(x => !srcIssues.has(x));
-  // Byte-preserving write (latin-1 round trip of what was read)
-  const bytes = new Uint8Array(out.length);
-  for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 0xFF;
-  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
-  const a = document.createElement('a'); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+function wireExportModal() {
+  $('#modal').addEventListener('change', e => {
+    const t = e.target; if (!$('#doExport')) return;
+    if (t.name === 'xmode') { S.exp.mode = t.value; renderExportModal(); }
+    else if (t.name === 'xdel') { S.exp.delivery = t.value; renderExportModal(); }
+    else if (t.id === 'xref') { S.exp.uniqueRef = t.checked; renderExportModal(); }
+    else if (t.id === 'xblank') { S.exp.includeBlank = t.checked; renderExportModal(); }
+  });
+  $('#modal').addEventListener('input', e => { if (e.target.id === 'expName') S.exp.singleName = e.target.value; });
+  $('#modal').addEventListener('click', e => { if (e.target.closest('#doExport')) doExport(); });
+}
+
+function toBytes(str) { // byte-preserving (latin-1) conversion of what was read
+  const b = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) b[i] = str.charCodeAt(i) & 0xFF;
+  return b;
+}
+function download(name, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function doExport() {
+  const E = S.exp, plan = exportPlan(), origRef = S.info.interchangeRef || '';
+  if (E.mode === 'single') {
+    const nm = (($('#expName') && $('#expName').value.trim()) || singleName());
+    plan[0].name = /\.[A-Za-z0-9]+$/.test(nm) ? nm : nm + '.edi';
+  }
+  const results = [];
+  for (let i = 0; i < plan.length; i++) {
+    const f = plan[i];
+    const opts = { expectOperator: f.expectOperator };
+    if (E.mode === 'split' && E.uniqueRef) opts.interchangeRef = BP.deriveRef(origRef, i + 1);
+    const r = BP.exportAndCheck(S.parsed, f.recs.map(x => x.block), opts);
+    if (r.problems.length) {
+      toast(`Export stopped. "${f.name}" failed validation: ${r.problems.join(' ')}`, 'err');
+      return;
+    }
+    results.push({ name: f.name, bytes: toBytes(r.text), count: r.count });
+  }
+  S.exp.singleName = '';
   closeModal();
-  if (newProblems.length) toast('Exported with warnings: ' + newProblems.join(' '), 'err');
-  else toast(`Exported ${recs.length.toLocaleString()} containers to ${fname} · structure validated ✓`, 'ok');
+  const total = results.reduce((s, r) => s + r.count, 0);
+  if (E.mode === 'single') {
+    download(results[0].name, new Blob([results[0].bytes], { type: 'application/octet-stream' }));
+    toast(`Exported ${total.toLocaleString()} containers to ${results[0].name} · structure validated ✓`, 'ok');
+  } else if (E.delivery === 'zip') {
+    const zipName = `${safeName(baseName())}_by_operator.zip`;
+    download(zipName, new Blob([makeZip(results)], { type: 'application/zip' }));
+    toast(`Exported ${results.length} operator files (${total.toLocaleString()} containers) in ${zipName} · all validated ✓`, 'ok');
+  } else {
+    results.forEach((r, i) => setTimeout(() => download(r.name, new Blob([r.bytes], { type: 'application/octet-stream' })), i * 450));
+    toast(`Downloading ${results.length} operator files (${total.toLocaleString()} containers) · all validated ✓. If only one file arrives, allow multiple downloads for this page.`, 'ok');
+  }
+}
+
+/* ---------------- Minimal ZIP writer (STORE, no compression, no dependencies) ---------------- */
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_TABLE[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const enc = new TextEncoder();
+  const parts = [], central = []; let offset = 0;
+  for (const f of files) {
+    const nameB = enc.encode(f.name), data = f.bytes, crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, nameB.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), nameB, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, nameB.length, true);
+    ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), nameB);
+    offset += 30 + nameB.length + data.length;
+  }
+  const cdSize = central.reduce((s, p) => s + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  const all = [...parts, ...central, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(all.reduce((s, p) => s + p.length, 0));
+  let o = 0; for (const p of all) { out.set(p, o); o += p.length; }
+  return out;
 }
 
 /* ---------------- Modal / tabs / toast ---------------- */
@@ -913,7 +1071,7 @@ function switchTab(t) {
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) switchTab(b.dataset.tab); });
 function toast(msg, kind) {
   const d = document.createElement('div'); d.className = kind || ''; d.textContent = msg; $('#toast').appendChild(d);
-  setTimeout(() => d.remove(), kind === 'err' ? 8000 : 4500);
+  setTimeout(() => d.remove(), kind === 'err' ? 9000 : 5500);
 }
 
 /* ---------------- Drag & drop / buttons ---------------- */
@@ -937,7 +1095,7 @@ window.addEventListener('drop', e => {
   loadFile(files[0]);
 });
 
-wireSidebar(); wireTable(); wireSummaries();
+wireSidebar(); wireTable(); wireSummaries(); wireExportModal();
 })();
 
 </script>
